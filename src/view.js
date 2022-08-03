@@ -31,17 +31,22 @@ export function view(Comp) {
 
   let ReactiveComp;
 
+  // hooks方法
   if (isStatelessComp && hasHooks) {
     // use a hook based reactive wrapper when we can
+    // 函数式组件
     ReactiveComp = props => {
       // use a dummy setState to update the component
       const [, setState] = useState();
       // create a memoized reactive wrapper of the original component (render)
       // at the very first run of the component function
+      // 返回reaction方法
       const render = useMemo(
         () =>
           observe(Comp, {
+            // setState只是用来触发组件渲染，并没有实际用到任何状态值
             scheduler: () => setState({}),
+            // 避免立即调用函数式Component方法
             lazy: true,
           }),
         // Adding the original Comp here is necessary to make React Hot Reload work
@@ -51,6 +56,7 @@ export function view(Comp) {
 
       // cleanup the reactive connections after the very last render of the component
       useEffect(() => {
+        // 组件销毁时，取消观测
         return () => unobserve(render);
       }, []);
 
@@ -65,6 +71,7 @@ export function view(Comp) {
       }
     };
   } else {
+    // 是否是纯函数式组件
     const BaseComp = isStatelessComp ? Component : Comp;
     // a HOC which overwrites render, shouldComponentUpdate and componentWillUnmount
     // it decides when to run the new reactive methods and when to proxy to the original methods
@@ -77,6 +84,7 @@ export function view(Comp) {
 
         // create a reactive render for the component
         this.render = observe(this.render, {
+          // 提供组件刷新的入口
           scheduler: () => this.setState({}),
           lazy: true,
         });
